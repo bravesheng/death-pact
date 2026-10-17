@@ -12,6 +12,32 @@
   };
   G.sfx = new Proxy({}, { get: (_, k) => (...a) => AudioSys.sfx[k] && AudioSys.sfx[k](...a) });
 
+  /* ---------- 平板 / 觸控偵測（網址加 ?touch=1 可在電腦上模擬） ---------- */
+  G.touch = /[?&]touch=1/.test(location.search) ||
+    matchMedia('(hover: none), (pointer: coarse)').matches || (navigator.maxTouchPoints || 0) > 1;
+  document.body.classList.toggle('touch', G.touch);
+  G.standalone = navigator.standalone === true || matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
+  const docEl = document.documentElement;
+  G.canFullscreen = !G.standalone && !!(docEl.requestFullscreen || docEl.webkitRequestFullscreen);
+  G.isFullscreen = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+  G.toggleFullscreen = function () {
+    if (G.isFullscreen()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+    try {
+      const p = (docEl.requestFullscreen || docEl.webkitRequestFullscreen).call(docEl);
+      if (p && p.catch) p.catch(() => {});
+      if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+    } catch (e) {}
+  };
+  // 擋掉雙指縮放、長按選單，避免玩到一半畫面被放大
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('dblclick', (e) => e.preventDefault());
+  G.ripple = function (x, y) {
+    if (!G.touch) return;
+    const r = G.el('div', 'tap-ripple'); r.style.left = x + 'px'; r.style.top = y + 'px';
+    document.getElementById('app').appendChild(r); setTimeout(() => r.remove(), 600);
+  };
+
   G.GRADE = {
     dusk: 'brightness(.86) contrast(1.1) saturate(.75) sepia(.2)',
     dim: 'brightness(.62) contrast(1.18) saturate(.6) sepia(.15)',
@@ -140,6 +166,7 @@
       const it = G.ITEMS[id]; if (!it) return;
       const d = G.el('div', 'inv-item', it.svg + `<span class="tip">${it.name}</span>`);
       d.dataset.id = id;
+      d.addEventListener('click', (e) => { e.stopPropagation(); G.toast(it.name, 1600); });
       hudInv.appendChild(d);
     });
   }
@@ -161,6 +188,11 @@
     setTimeout(() => hs.forEach(h => h.classList.remove('reveal')), 2200);
   };
   $('#btn-hint').addEventListener('click', (e) => { e.stopPropagation(); G.revealHotspots(); });
+  if (G.touch) $('#btn-hint').textContent = '？ 提示';
+  const btnFs = $('#btn-fs');
+  if (G.canFullscreen && G.touch) btnFs.classList.remove('hidden');
+  btnFs.addEventListener('click', (e) => { e.stopPropagation(); G.toggleFullscreen(); });
+  $('#rotate .rot-ok').addEventListener('click', () => document.body.classList.add('rotate-ok'));
   const btnSound = $('#btn-sound');
   function syncSound() { btnSound.classList.toggle('off', AudioSys.isMuted()); }
   btnSound.addEventListener('click', (e) => {
@@ -223,6 +255,8 @@
 
   /* ---------- photo scenes ---------- */
   const ARROWS = { left: '◀', right: '▶', up: '▲', down: '▼', action: '' };
+  let swipedAt = 0;
+  G.justSwiped = () => performance.now() - swipedAt < 450;
   G.photo = function (def) {
     return Object.assign({}, def, {
       mount(st) {
@@ -242,7 +276,13 @@
           const [x, y, w, hh] = h.r;
           Object.assign(d.style, { left: x + '%', top: y + '%', width: w + '%', height: hh + '%' });
           if (G.state.seen[def.id + ':' + h.id] && !h.go) d.classList.add('seen');
-          d.addEventListener('click', (e) => { e.stopPropagation(); if (G.locked()) return; G.hotspot(def, h, d); });
+          d.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (G.locked() || G.justSwiped()) return;
+            G.ripple(e.clientX, e.clientY);
+            if (G.touch) { d.classList.add('reveal'); setTimeout(() => d.classList.remove('reveal'), 900); }
+            G.hotspot(def, h, d);
+          });
           wrap.appendChild(d);
         });
         scr.append(bg, wrap);
@@ -258,6 +298,20 @@
           keymap[{ left: 'ArrowLeft', right: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown' }[n.dir]] = act;
         });
         G.keyHandler = (e) => { if (keymap[e.key]) { e.preventDefault(); keymap[e.key](); } };
+        // 平板：左右滑動換場景
+        if (G.touch) {
+          let sw = null;
+          scr.addEventListener('pointerdown', (e) => { sw = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+          scr.addEventListener('pointerup', (e) => {
+            if (!sw) return;
+            const dx = e.clientX - sw.x, dy = e.clientY - sw.y, dt = performance.now() - sw.t; sw = null;
+            if (dt < 900 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+              const act = keymap[dx < 0 ? 'ArrowRight' : 'ArrowLeft'];
+              if (act) { swipedAt = performance.now(); act(); }
+            }
+          });
+          scr.addEventListener('pointercancel', () => { sw = null; });
+        }
         st.appendChild(scr);
         G.setLoc(def.title); G.hud(true);
         G.ambient(!!def.ambient);

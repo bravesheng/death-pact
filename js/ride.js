@@ -20,7 +20,7 @@
       const scr = G.el('div', 'screen canvas-screen');
       const cv = G.el('canvas', 'main'); scr.appendChild(cv);
       const ui = G.el('div', 'ride-ui', `<div class="ride-bar"><div class="fill"></div><div class="bike">🛵</div></div><div class="ride-labels"><span>${opts.from || '出發'}</span><span>${opts.to || '新家'}</span></div>`);
-      const hint = G.el('div', 'ride-hint', '按住 → 鍵（或按住畫面）催油門');
+      const hint = G.el('div', 'ride-hint', G.touch ? '用手指按住畫面催油門，放開就減速' : '按住 → 鍵（或按住畫面）催油門');
       const skip = G.el('button', 'btn small ride-skip', '略過 ▶▶');
       scr.append(ui, hint, skip);
       host.appendChild(scr);

@@ -35,17 +35,22 @@
             <button class="btn start">開始遊戲</button>
             ${save ? '<button class="btn cont">繼續遊戲</button>' : ''}
           </div>
-          <div class="warn">※ 本遊戲含有驚嚇畫面與音效，建議戴上耳機遊玩<br>滑鼠點擊調查・方向鍵移動・H 顯示可調查處・M 靜音</div>
+          <div class="warn">※ 本遊戲含有驚嚇畫面與音效，建議戴上耳機遊玩<br>${G.touch
+            ? '點畫面上的東西調查・左右滑動或點箭頭移動・右上「？提示」標出可調查處'
+            : '滑鼠點擊調查・方向鍵移動・H 顯示可調查處・M 靜音'}${G.touch && !G.canFullscreen && !G.standalone
+            ? '<br>在 Safari 按「分享 → 加入主畫面」，就能全螢幕遊玩' : ''}</div>
         </div>`);
       st.appendChild(scr);
+      // 平板按下開始時順便進入全螢幕
+      const goFull = () => { if (G.touch && G.canFullscreen && !G.isFullscreen()) G.toggleFullscreen(); };
       scr.querySelector('.start').addEventListener('click', () => {
-        AudioSys.init(); G.sfx.click();
+        goFull(); AudioSys.init(); G.sfx.click();
         G.state = G.newState(); G.renderInv(); G.objective('', false); G.clearSave();
         G.go('prologue', { fadeMs: 1200 });
       });
       const cont = scr.querySelector('.cont');
       if (cont) cont.addEventListener('click', () => {
-        AudioSys.init(); G.sfx.click();
+        goFull(); AudioSys.init(); G.sfx.click();
         G.state = Object.assign(G.newState(), save.state); G.renderInv();
         G.go({ living: 'living', bedroom: 'bed1' }[save.cp] || 'living', { fadeMs: 1000 });
       });
@@ -110,6 +115,10 @@
       if (!first) return;
       await say(['一樓堆滿了前屋主留下的東西……', '沙發、茶几、擺設，全都還在原來的位置。', '簡直像是……人突然消失了一樣。', '（先找找上二樓的樓梯吧。）']);
       G.objective('找到上二樓的樓梯');
+      if (G.touch) {
+        G.revealHotspots();
+        await say([['操作', '左右滑動畫面，或點兩側的箭頭，可以換到別的房間。']]);
+      }
     },
     hotspots: [
       { id: 'painting', label: '老畫', r: [11, 38, 14, 12], lines: ['一幅褪色的風景畫。', '畫框底下有一圈深色的水漬……', '像是從畫裡面滲出來的。'] },

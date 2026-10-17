@@ -351,10 +351,11 @@
       const keysEl = G.el('div', 'keys-hint');
       const dpad = G.el('div', 'dpad', '<button class="u">▲</button><button class="l">◀</button><button class="r">▶</button><button class="d">▼</button>');
       el.append(canvas, lidT, lidB, hintEl, keysEl, dpad);
+      document.body.classList.add('dreaming');
       host.appendChild(el);
 
       const renderer = new T.WebGLRenderer({ canvas, antialias: true });
-      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      renderer.setPixelRatio(Math.min(G.touch ? 1.5 : 2, window.devicePixelRatio || 1));
       renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
       const scene = new T.Scene();
       scene.background = new T.Color(0x000000);
@@ -550,7 +551,8 @@
       window.addEventListener('pointermove', onMove);
       function onMove(e) {
         if (!drag || !control) return;
-        yaw += (e.clientX - drag.x) * 0.0045; pitch -= (e.clientY - drag.y) * 0.0045;
+        const k = (G.touch ? 3.0 : 2.6) / Math.max(600, el.clientWidth);
+        yaw += (e.clientX - drag.x) * k; pitch -= (e.clientY - drag.y) * k;
         drag = { x: e.clientX, y: e.clientY };
       }
       const endDrag = () => { drag = null; };
@@ -765,8 +767,8 @@
         AudioSys.heart.start(64);
         await G.sub('（鬼壓床……？）', 2000);
         control = true;
-        keysHint('只能轉動頭部：← → ↑ ↓（或 WASD）');
-        setTimeout(() => keysHint('（看看四周……窗戶、電風扇）'), 6000);
+        keysHint(G.touch ? '只能轉動頭部：用手指拖曳畫面，或按右下角的方向鍵' : '只能轉動頭部：← → ↑ ↓（或 WASD、拖曳畫面）');
+        setTimeout(() => keysHint('（看看四周……窗戶、電風扇）'), G.touch ? 9000 : 6000);
 
         let seenW = false, seenF = false;
         const pW = waitLook(winPos, 1100, 18, { hintAfter: 14, autoAfter: 60, focus: true }).then(async () => {
@@ -888,6 +890,7 @@
 
       function cleanup() {
         running = false;
+        document.body.classList.remove('dreaming');
         clearInterval(blinkTimer);
         window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
         window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', endDrag);

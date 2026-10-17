@@ -14,7 +14,12 @@ html, body {
   margin: 0; height: 100%; background: #000; color: var(--ink);
   overflow: hidden; font-family: var(--sans);
   -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none; overscroll-behavior: none; touch-action: manipulation;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
 }
+img { -webkit-user-drag: none; }
+.photo-scene, .canvas-screen, .dream, .title-screen, .black-screen, .end-card { touch-action: none; }
+.store { touch-action: pan-y; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 button { font: inherit; color: inherit; }
 .hidden { display: none !important; }
 
@@ -320,7 +325,7 @@ body.riding #sub { bottom: auto; top: 22%; }
 .dpad button:active, .dpad button.on { background: rgba(200,40,30,.5); }
 .dpad .u { left: 50px; top: 0; } .dpad .d { left: 50px; bottom: 0; }
 .dpad .l { left: 0; top: 50px; } .dpad .r { right: 0; top: 50px; }
-@media (hover: none), (pointer: coarse) { .dpad { display: block; } }
+body.touch .dpad { display: block; }
 
 .ghost-layer { position: absolute; inset: 0; z-index: 80; background: #000; display: none; overflow: hidden; }
 .ghost-layer canvas { position: absolute; left: 50%; top: 50%; width: max(100vw, calc(100 * var(--vh))); height: max(100vw, calc(100 * var(--vh))); transform: translate(-50%, -50%); }
@@ -371,3 +376,70 @@ body.riding #sub { bottom: auto; top: 22%; }
   #hud { padding: 10px; }
   .hud-btn, .inv-item { width: 34px; height: 34px; }
 }
+
+
+/* ================= 平板 / 觸控 ================= */
+body.touch .nav { padding: 14px 22px; font-size: 16px; min-height: 52px; gap: 10px; }
+body.touch .nav .arr { font-size: 22px; }
+body.touch .nav.left { left: max(14px, env(safe-area-inset-left)); }
+body.touch .nav.right { right: max(14px, env(safe-area-inset-right)); }
+body.touch .nav.up { top: 88px; }
+body.touch .nav.down { bottom: calc(18px + env(safe-area-inset-bottom)); }
+body.touch .nav.action { padding: 18px 36px; font-size: 19px; bottom: calc(96px + env(safe-area-inset-bottom)); }
+body.touch #hud { padding: max(14px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) 14px max(18px, env(safe-area-inset-left)); }
+body.touch #hud-loc { font-size: 17px; }
+body.touch #hud-obj { font-size: 15px; padding: 8px 12px; }
+body.touch .hud-btn, body.touch .inv-item { width: 50px; height: 50px; }
+body.touch .hud-btn { font-size: 20px; }
+body.touch #btn-hint { width: auto; padding: 0 18px; border-radius: 25px; font-size: 16px; letter-spacing: .1em; }
+body.touch .inv-item svg { width: 30px; height: 30px; }
+body.touch .dlg-box { min-height: 132px; padding: 22px 32px 30px; }
+body.touch .dlg-text { font-size: clamp(18px, 2.5vw, 25px); }
+body.touch .dlg-next { font-size: 13px; opacity: 0; }
+body.touch .dlg-box.done .dlg-next { opacity: .9; }
+body.touch .dlg-box.done .dlg-next::after { content: "　點一下繼續"; letter-spacing: .1em; }
+body.touch .btn { min-height: 54px; font-size: 20px; }
+body.touch .btn.small { min-height: 46px; font-size: 16px; padding: 10px 22px; }
+body.touch .good button { padding: 12px 20px; font-size: 16px; }
+body.touch .good .nm { font-size: 20px; }
+body.touch .store-bar { font-size: 17px; gap: 26px; }
+body.touch .ride-hint { font-size: 17px; padding: 12px 24px; bottom: calc(34px + env(safe-area-inset-bottom)); }
+body.touch .ride-skip { right: max(16px, env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom)); }
+body.touch .ext-hs .lbl, body.touch .hs .lbl { font-size: 15px; padding: 6px 12px; }
+body.touch .warn { font-size: 15px; }
+body.touch #toast { font-size: 17px; padding: 12px 26px; }
+
+/* 夢境的方向鍵：大一點、好按 */
+body.touch .dpad { width: 204px; height: 204px; right: max(22px, env(safe-area-inset-right)); bottom: calc(22px + env(safe-area-inset-bottom)); }
+body.touch .dpad::before {
+  content: ""; position: absolute; inset: 14px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.06), rgba(255,255,255,.02) 60%, transparent 70%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+body.touch .dpad button { width: 68px; height: 68px; border-radius: 16px; font-size: 26px; }
+body.touch .dpad .u { left: 68px; top: 0; } body.touch .dpad .d { left: 68px; bottom: 0; }
+body.touch .dpad .l { left: 0; top: 68px; } body.touch .dpad .r { right: 0; top: 68px; }
+body.touch .dream canvas.gl { touch-action: none; }
+body.touch .dream .keys-hint { font-size: 15px; padding: 9px 20px; top: max(18px, env(safe-area-inset-top)); max-width: calc(100vw - 40px); text-align: center; }
+body.touch.dreaming #sub { width: min(640px, calc(100vw - 460px)); min-width: 300px; bottom: calc(60px + env(safe-area-inset-bottom)); }
+@media (orientation: portrait) { body.touch.dreaming #sub { width: 88vw; bottom: calc(250px + env(safe-area-inset-bottom)); } }
+
+/* 點擊回饋 */
+.tap-ripple {
+  position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; pointer-events: none; z-index: 30;
+  border: 2px solid rgba(255,230,200,.85); animation: ripple .55s ease-out forwards;
+}
+@keyframes ripple { from { transform: scale(.4); opacity: 1; } to { transform: scale(4.5); opacity: 0; } }
+
+/* 直向時的提示 */
+#rotate {
+  position: absolute; inset: 0; z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  background: rgba(0,0,0,.94); font-family: var(--serif); letter-spacing: .2em; font-size: 20px; text-align: center; padding: 24px;
+}
+.rot-icon {
+  width: 70px; height: 104px; border: 3px solid #e9e0d2; border-radius: 12px; position: relative;
+  animation: rot 2.4s ease-in-out infinite;
+}
+.rot-icon::after { content: ""; position: absolute; left: 50%; bottom: 7px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #b3261e; }
+@keyframes rot { 0%, 25% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
+@media (orientation: portrait) { body.touch:not(.rotate-ok) #rotate { display: flex; } }

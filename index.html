@@ -2,7 +2,14 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="死契">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <title>死契｜第一章 惡夢開端</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M6 16 16 7l10 9v10H6z' fill='none' stroke='%23b3261e' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='19' r='2.5' fill='%23e9e0d2'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +32,7 @@
       <div id="hud-inv"></div>
       <button id="btn-hint" class="hud-btn" title="顯示可調查的地方 (H)">?</button>
       <button id="btn-sound" class="hud-btn" title="音效開關 (M)">♪</button>
+      <button id="btn-fs" class="hud-btn hidden" title="全螢幕">⛶</button>
     </div>
   </div>
 
@@ -40,6 +48,12 @@
   </div>
 
   <div id="fade"></div>
+
+  <div id="rotate">
+    <div class="rot-icon"></div>
+    <div class="rot-text">建議將平板橫放遊玩</div>
+    <button class="btn small rot-ok">直向繼續玩</button>
+  </div>
 </div>
 
 <script src="vendor/three.min.js"></script>

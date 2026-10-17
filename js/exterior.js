@@ -232,7 +232,12 @@
         const d = G.el('div', 'ext-hs', `<span class="lbl">${h.label}</span>`);
         const [hx, hy, hw, hh] = h.r;
         Object.assign(d.style, { left: hx / VW * 100 + '%', top: hy / VH * 100 + '%', width: hw / VW * 100 + '%', height: hh / VH * 100 + '%' });
-        d.addEventListener('click', (e) => { e.stopPropagation(); if (G.locked() || S.opening) return; this.click(h.id); });
+        d.addEventListener('click', (e) => {
+          e.stopPropagation(); if (G.locked() || S.opening) return;
+          G.ripple(e.clientX, e.clientY);
+          if (G.touch) { d.classList.add('reveal'); setTimeout(() => d.classList.remove('reveal'), 900); }
+          this.click(h.id);
+        });
         wrap.appendChild(d);
       });
       G.setLoc('新家門口'); G.hud(true);
@@ -246,6 +251,10 @@
         '鐵捲門拉得緊緊的。仲介說，鑰匙會放在門口。',
       ]);
       G.objective('找到鑰匙，打開鐵捲門');
+      if (G.touch) {
+        G.revealHotspots();
+        await G.say([['操作', '點畫面上的東西可以調查。\n右上角「？提示」會標出可以調查的地方。']]);
+      }
     },
     unmount() { this.s.run = false; AudioSys.city.stop(1); },
     async click(id) {

@@ -8,7 +8,14 @@
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
+    // iPad / iPhone：讓靜音開關打開時也聽得到遊戲音效
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
     ctx = new AC();
+    // 平板切到背景再回來時，音訊會被系統暫停，點一下畫面就恢復
+    const wake = () => { if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); };
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(); });
+    window.addEventListener('pointerdown', wake, true);
+    window.addEventListener('touchend', wake, true);
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -12; comp.knee.value = 12; comp.ratio.value = 5;
     comp.attack.value = 0.003; comp.release.value = 0.25;
