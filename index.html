@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>死契｜第一章 惡夢開端</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M6 16 16 7l10 9v10H6z' fill='none' stroke='%23b3261e' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='19' r='2.5' fill='%23e9e0d2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage"></div>
+  <div id="vignette"></div>
+  <canvas id="grain" width="160" height="160"></canvas>
+
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div id="hud-loc"></div>
+      <div id="hud-obj"></div>
+    </div>
+    <div class="hud-right">
+      <div id="hud-inv"></div>
+      <button id="btn-hint" class="hud-btn" title="顯示可調查的地方 (H)">?</button>
+      <button id="btn-sound" class="hud-btn" title="音效開關 (M)">♪</button>
+    </div>
+  </div>
+
+  <div id="sub"></div>
+  <div id="toast"></div>
+
+  <div id="dialog" class="hidden">
+    <div class="dlg-box">
+      <div class="dlg-name"></div>
+      <div class="dlg-text"></div>
+      <div class="dlg-next">▼</div>
+    </div>
+  </div>
+
+  <div id="fade"></div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ghost.js"></script>
+<script src="js/ride.js"></script>
+<script src="js/exterior.js"></script>
+<script src="js/store.js"></script>
+<script src="js/dream.js"></script>
+<script src="js/scenes.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
