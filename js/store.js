@@ -2,8 +2,8 @@
 (function () {
   const GOODS = [
     { id: 'bed', name: '實木雙人床', img: 'item_bed', price: 8800, must: true, desc: '附床墊與碎花床包。老闆說是「整組拿回來的」。' },
-    { id: 'wardrobe', name: '對開大衣櫃', img: 'item_wardrobe', price: 6500, desc: '厚實的柚木衣櫃，門一關上就密不透風。' },
-    { id: 'dresser', name: '四斗櫃＋首飾盒', img: 'item_dresser', price: 3900, desc: '抽屜有點卡。首飾盒的小鏡子擦不乾淨。' },
+    { id: 'wardrobe', name: '四門大衣櫃', img: 'item_wardrobe', price: 6500, desc: '厚實的木頭衣櫃，門一關上就密不透風。' },
+    { id: 'dresser', name: '床頭櫃（四斗櫃）', img: 'item_dresser', price: 3900, desc: '放在床邊，可以擺水杯、手機。抽屜有點卡。' },
   ];
   const fmt = (n) => 'NT$ ' + n.toLocaleString('en-US');
 

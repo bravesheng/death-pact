@@ -261,11 +261,12 @@
     return Object.assign({}, def, {
       mount(st) {
         const scr = G.el('div', 'screen photo-scene enter');
-        const bg = G.el('div', 'bgblur'); bg.style.backgroundImage = `url(assets/${def.img}.jpg)`;
+        const imgName = typeof def.img === 'function' ? def.img() : def.img;
+        const bg = G.el('div', 'bgblur'); bg.style.backgroundImage = `url(assets/${imgName}.jpg)`;
         const wrap = G.el('div', 'photo-wrap');
-        wrap.style.setProperty('--ar', def.ar || 1);
+        wrap.style.setProperty('--ar', (typeof def.ar === 'function' ? def.ar() : def.ar) || 1);
         wrap.style.setProperty('--grade', typeof def.grade === 'function' ? def.grade() : (def.grade || G.GRADE.dusk));
-        const img = new Image(); img.src = `assets/${def.img}.jpg`; img.draggable = false; img.alt = def.title || '';
+        const img = new Image(); img.src = `assets/${imgName}.jpg`; img.draggable = false; img.alt = def.title || '';
         wrap.appendChild(img);
         const tintVal = typeof def.tint === 'function' ? def.tint() : def.tint;
         if (tintVal) { const t = G.el('div', 'tint'); t.style.background = tintVal; if (def.tintBlend) t.style.mixBlendMode = def.tintBlend; wrap.appendChild(t); }
@@ -326,7 +327,10 @@
   G.hotspot = async function (def, h, d) {
     const key = def.id + ':' + h.id;
     const first = !G.state.seen[key];
-    if (first && !h.go) { G.state.seen[key] = true; G.state.examined++; }
+    if (first && !h.go) {
+      G.state.seen[key] = true; G.state.examined++;
+      if (G.state.examined >= 30 && G.award) G.award('curious');
+    }
     if (!h.go) d.classList.add('seen');
     if (h.go) { G.sfx.step(2); return G.go(h.go); }
     if (h.goFn) return h.goFn();
@@ -334,6 +338,8 @@
     if (h.fn) return h.fn({ first, el: d });
     if (h.lines) return G.say(typeof h.lines === 'function' ? h.lines(first) : h.lines);
   };
+  // 換成同一場景的另一張照片（例如水杯放好、檯燈關掉）
+  G.swap = async function () { await G.fadeOut(260); G.refresh(); await G.fadeIn(380); };
   G.refresh = function () {
     if (!G.cur) return;
     if (G.cur.unmount) G.cur.unmount();

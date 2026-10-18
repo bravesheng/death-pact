@@ -9,7 +9,8 @@
       AudioSys.init();
       const F = G.state.flags;
       if (jump === 'dream' || jump === 'wake') { G.state.inv = ['marble']; G.renderInv(); }
-      if (jump.startsWith('bed')) { F.furniture = ['bed']; F.fan = true; }
+      if (/^(bed|side|lamp)/.test(jump)) { F.furniture = /[?&]dresser=1/.test(location.search) ? ['bed', 'dresser'] : ['bed']; F.fan = true; }
+      if (jump === 'thirst' || jump === 'wake444') { F.furniture = ['bed']; F.water = true; }
       G.go(jump, { fadeMs: 400 });
     });
   } else {

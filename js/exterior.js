@@ -314,8 +314,8 @@
             requestAnimationFrame(step);
           });
           await G.say(['鐵捲門後面，一片漆黑。', '一股潮濕的霉味撲面而來。']);
-          G.save('living');
-          G.go('living', { fadeMs: 900 });
+          G.save('f1');
+          G.go('shelf', { fadeMs: 900 });
           break;
       }
     }

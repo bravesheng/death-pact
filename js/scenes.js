@@ -35,6 +35,8 @@
             <button class="btn start">開始遊戲</button>
             ${save ? '<button class="btn cont">繼續遊戲</button>' : ''}
           </div>
+          <div class="ver">v${GAME_VERSION.version}・${GAME_VERSION.released} 發布<span class="ver-new hidden"></span></div>
+          <button class="honor-btn">${G.BADGES[0].icon}<span>榮譽</span><b>${G.BADGES.filter(b => G.badges[b.id]).length} / ${G.BADGES.length}</b></button>
           <div class="warn">※ 本遊戲含有驚嚇畫面與音效，建議戴上耳機遊玩<br>${G.touch
             ? '點畫面上的東西調查・左右滑動或點箭頭移動・右上「？提示」標出可調查處'
             : '滑鼠點擊調查・方向鍵移動・H 顯示可調查處・M 靜音'}${G.touch && !G.canFullscreen && !G.standalone
@@ -52,8 +54,16 @@
       if (cont) cont.addEventListener('click', () => {
         goFull(); AudioSys.init(); G.sfx.click();
         G.state = Object.assign(G.newState(), save.state); G.renderInv();
-        G.go({ living: 'living', bedroom: 'bed1' }[save.cp] || 'living', { fadeMs: 1000 });
+        G.go({ f1: 'shelf', living: 'shelf', bedroom: 'bed1' }[save.cp] || 'shelf', { fadeMs: 1000 });
       });
+      scr.querySelector('.honor-btn').addEventListener('click', () => { AudioSys.init(); G.sfx.click(); G.showHonors(); });
+      // 檢查伺服器上是不是有更新的版本
+      const vn = scr.querySelector('.ver-new');
+      fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json()).then(v => {
+        if (v.version === GAME_VERSION.version) { vn.textContent = '　✓ 已是最新版本'; vn.classList.remove('hidden'); return; }
+        vn.innerHTML = `　<button>有新版本 v${v.version}，點這裡更新</button>`; vn.classList.remove('hidden'); vn.classList.add('update');
+        vn.querySelector('button').addEventListener('click', () => { location.href = location.pathname + '?r=' + Date.now(); });
+      }).catch(() => {});
       // 標題畫面的雨
       const cv = scr.querySelector('canvas'), x = cv.getContext('2d');
       const drops = Array.from({ length: 200 }, () => ({ x: Math.random(), y: Math.random(), v: .8 + Math.random() * .8 }));
@@ -106,19 +116,183 @@
     async after() { await this.p; G.go('exterior', { fadeMs: 900 }); }
   };
 
-  /* ================= 一樓（照片場景） ================= */
+  /* ================= 一樓：只有雜物 ================= */
   const F1 = { ambient: true, grade: G.GRADE.dusk, tint: G.TINT.dusk };
 
-  S.living = G.photo(Object.assign({}, F1, {
-    id: 'living', img: 'living', ar: 1400 / 873, title: '一樓・客廳',
+  S.shelf = G.photo(Object.assign({}, F1, {
+    id: 'shelf', img: 'shelf', title: '一樓・雜物間',
     async onEnter(first) {
       if (!first) return;
-      await say(['一樓堆滿了前屋主留下的東西……', '沙發、茶几、擺設，全都還在原來的位置。', '簡直像是……人突然消失了一樣。', '（先找找上二樓的樓梯吧。）']);
-      G.objective('找到上二樓的樓梯');
+      await say(['鐵捲門後面……堆滿了雜物。', '看起來，前屋主把一樓當成了倉庫。', '住人的地方……應該在二樓吧。']);
+      G.objective('找到上二樓的路');
       if (G.touch) {
         G.revealHotspots();
-        await say([['操作', '左右滑動畫面，或點兩側的箭頭，可以換到別的房間。']]);
+        await say([['操作', '左右滑動畫面，或點兩側的箭頭，可以換到別的地方。']]);
       }
+    },
+    hotspots: [
+      { id: 'globes', label: '雪花球', r: [10, 39, 40, 13], lines: ['一整排雪花球。', '裡面的小人……全都背對著我。'] },
+      { id: 'box', label: '私房錢盒', r: [29, 54, 10, 15], lines: ['寫著「私房錢」的木盒子。', '搖一搖，裡面沙沙作響……', '（還是別打開好了。）'] },
+      { id: 'hats', label: '生日帽', r: [19, 17, 27, 15], lines: ['兩頂生日帽。', '上一次在這間房子裡過生日的人，現在在哪裡呢？'] },
+      { id: 'plane', label: '玩具飛機', r: [52, 3, 20, 10], lines: ['櫃子頂端擺著一架紅色的玩具飛機。', '機頭朝著窗外，像是想飛走。'] },
+      { id: 'capy', label: '水豚擺飾', r: [55, 65, 9, 13], lines: ['咬著西瓜的水豚擺飾。', '整間房子裡，只有牠看起來心情很好。'] },
+      { id: 'art', label: '畫', r: [80, 14, 20, 32], lines: ['一幅夕陽的畫。', '顏色黑黑紅紅的，越看越不舒服。'] },
+    ],
+    nav: [
+      { dir: 'left', to: 'cabinet', label: '置物櫃' },
+      { dir: 'right', to: 'gate', label: '玄關（往二樓）' },
+    ]
+  }));
+
+  S.cabinet = G.photo(Object.assign({}, F1, {
+    id: 'cabinet', img: 'cabinet', title: '一樓・雜物間（置物櫃）',
+    hotspots: [
+      { id: 'capsules', label: '最下層', r: [26, 77, 17, 22], go: 'capsules' },
+      { id: 'louver', label: '百葉櫃', r: [5, 20, 20, 74], lines: ['百葉門的縫隙裡，好像有什麼東西在往外看。', '……拉開。', '只有一堆舊衣服。'] },
+      { id: 'plush', label: '黃色布偶', r: [62, 84, 27, 16], lines: ['一隻黃色的大布偶，歪著頭看我。', '剛剛……它的頭是往這邊歪的嗎？'] },
+      { id: 'fan', label: '電風扇', r: [85, 61, 15, 34], lines: ['又一台電風扇。', '這家人好像很怕熱……還是很怕安靜？'] },
+      { id: 'pumpkin', label: '南瓜燈', r: [87, 0, 13, 8], lines: ['萬聖節的南瓜燈，嘴巴咧得好開。'] },
+      { id: 'drawers', label: '收納盒', r: [77, 12, 22, 18], lines: ['抽屜裡塞滿了髮夾、橡皮筋……', '還有一撮綁好的頭髮。'] },
+    ],
+    nav: [{ dir: 'down', to: 'shelf', label: '回展示櫃' }]
+  }));
+
+  S.capsules = G.photo(Object.assign({}, F1, {
+    id: 'capsules', img: 'capsules', title: '一樓・雜物間（最下層）',
+    enter: ['櫃子最下層，塞滿了扭蛋的空殼。'],
+    decorate(wrap) {
+      if (F().marbleTaken) return;
+      const m = G.el('div', 'marble');
+      Object.assign(m.style, { left: '45%', top: '73.3%', width: '3.9%', height: '3.9%' });
+      m.addEventListener('click', async (e) => {
+        e.stopPropagation(); if (G.locked()) return;
+        F().marbleTaken = true; m.remove();
+        await say(['咦？扭蛋殼堆裡，混著一顆玻璃彈珠。']);
+        G.addItem('marble');
+        await say(['冰冰涼涼的。', '我順手把它放進了口袋。']);
+        G.award('marble');
+      });
+      wrap.appendChild(m);
+    },
+    hotspots: [
+      { id: 'black', label: '黑色扭蛋', r: [57, 46, 8, 10], lines: ['只有這顆扭蛋是全黑的。', '拿起來搖一搖……裡面有東西在動。', '……我把它放回去了。'] },
+      { id: 'box', label: '積木盒', r: [62, 28, 38, 32], lines: ['黃色的積木收納盒，裡面空空的。'] },
+      { id: 'pile', label: '扭蛋殼', r: [10, 20, 30, 40], lines: ['好多扭蛋殼……少說也有上百個。', '到底是誰轉了這麼多？'] },
+    ],
+    nav: [{ dir: 'down', to: 'cabinet', label: '返回' }]
+  }));
+
+  /* ================= 一樓通往二樓的玄關 ================= */
+  S.gate = G.photo(Object.assign({}, F1, {
+    id: 'gate', img: 'gate', title: '一樓・玄關門口',
+    enter: ['離開雜物間，旁邊是一扇玻璃格子門。', '門後面……就是通往二樓的玄關。'],
+    hotspots: [
+      { id: 'door', label: '進入玄關', r: [20, 2, 31, 80], go: 'foyer' },
+      { id: 'rack', label: '門後的架子', r: [51, 5, 10, 76], lines: ['門後的架子上放著舊鞋子和一把雨傘。', '雨傘……還是濕的。'] },
+      { id: 'iron', label: '鐵門', r: [62, 0, 38, 100], lines: ['這扇鐵門很重。', '內側有好幾道刮痕，像是有人想從裡面出去。'] },
+      { id: 'dark', label: '暗處', r: [0, 34, 19, 56], lines: ['陰影裡好像蹲著什麼……', '……只是一個空紙箱。'] },
+    ],
+    nav: [
+      { dir: 'up', to: 'foyer', label: '進入玄關' },
+      { dir: 'down', to: 'shelf', label: '回雜物間' },
+    ]
+  }));
+
+  S.foyer = G.photo(Object.assign({}, F1, {
+    id: 'foyer', img: 'foyer', title: '一樓・玄關',
+    enter: ['玄關很窄。右手邊，就是上二樓的樓梯。'],
+    hotspots: [
+      { id: 'mirror', label: '鏡子', r: [7, 0, 18, 45], fn: () => say(['玄關的鏡子映著身後那扇玻璃門。', ['', '……玻璃門外面，好像站著一個人。', () => G.sfx.sting(0.45)], '回頭——', '什麼都沒有。']) },
+      { id: 'piggy', label: '小豬撲滿', r: [36, 28, 15, 13], lines: ['小豬撲滿笑得眼睛瞇成一條線。', '搖一搖，裡面只有一枚硬幣在滾。'] },
+      { id: 'pot', label: '茶壺', r: [52, 29, 15, 12], lines: ['鞋櫃上的茶壺……壺嘴正對著樓梯口。'] },
+      { id: 'shoes', label: '鞋櫃', r: [34, 40, 42, 55], lines: ['打開鞋櫃——', '裡面整整齊齊擺著一雙一雙的鞋。', '每一雙……都是小孩子的尺寸。'] },
+      { id: 'stairs', label: '樓梯', r: [76, 8, 22, 88], go: 'stairsbase' },
+    ],
+    nav: [
+      { dir: 'right', to: 'stairsbase', label: '樓梯' },
+      { dir: 'down', to: 'gate', label: '返回' },
+    ]
+  }));
+
+  S.stairsbase = G.photo(Object.assign({}, F1, {
+    id: 'stairsbase', img: 'stairsbase', title: '一樓・樓梯',
+    async onEnter(first) {
+      if (first) await say(['又窄又陡的樓梯，一路往上。', '樓梯的盡頭……有一點光。']);
+      G.objective('走樓梯上二樓');
+    },
+    hotspots: [
+      { id: 'up', label: '往上走', r: [10, 24, 62, 76], go: 'stairsup' },
+      { id: 'top', label: '樓梯上面', r: [30, 0, 22, 22], lines: ['樓梯盡頭的門開著一條縫。', '二樓，才是真正住人的地方。'] },
+      { id: 'rail', label: '扶手', r: [55, 0, 45, 7], lines: ['扶手上積了一層灰，只有一段被擦得很乾淨。', '……像是最近有人一直扶著它上下樓。'] },
+    ],
+    nav: [
+      { dir: 'up', to: 'stairsup', label: '往上走' },
+      { dir: 'down', to: 'foyer', label: '回玄關' },
+    ]
+  }));
+
+  // 走樓梯上二樓的影片：按住「往前走」才會前進，放開就停
+  S.stairsup = {
+    mount(st) {
+      G.hud(true); G.setLoc('樓梯'); G.objective('按住「往前走」上樓');
+      const scr = G.el('div', 'screen video-scene', `
+        <video class="vid dusk" src="assets/stairs_up.mp4" muted playsinline preload="auto"></video>
+        <div class="vid-bar"><div class="fill"></div></div>
+        <button class="walk-btn hold">▲ 往前走<small>${G.touch ? '按住' : '按住（或按住 ↑ 鍵）'}</small></button>`);
+      st.appendChild(scr);
+      document.body.classList.add('in-video');
+      const v = scr.querySelector('video'), btn = scr.querySelector('.walk-btn'), fill = scr.querySelector('.fill');
+      v.load();
+      const S2 = this.s = { walking: false, started: false, stopped: false, done: false };
+      const lines = [[2.2, '一階……一階……'], [4.7, '樓梯上……有個影子。'], [6.0, '（是我自己的影子……吧？）'], [8.6, '上面有光。']];
+      let step = null;
+      const setWalk = (on) => {
+        if (S2.done || on === S2.walking) return;
+        S2.walking = on; btn.classList.toggle('on', on);
+        if (on) {
+          S2.started = true;
+          const p = v.play(); if (p && p.catch) p.catch(() => {});
+          G.sfx.step(1); step = setInterval(() => G.sfx.step(1), 560);
+        } else {
+          v.pause(); clearInterval(step);
+          if (S2.started && v.currentTime < v.duration - 0.3) S2.stopped = true;
+        }
+      };
+      const down = (e) => { e.preventDefault(); setWalk(true); };
+      const up = () => setWalk(false);
+      btn.addEventListener('pointerdown', down);
+      window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+      const kd = (e) => { if (['ArrowUp', 'w', 'W', ' '].includes(e.key)) { e.preventDefault(); if (!e.repeat) setWalk(true); } };
+      const ku = (e) => { if (['ArrowUp', 'w', 'W', ' '].includes(e.key)) setWalk(false); };
+      window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
+      v.addEventListener('timeupdate', () => {
+        if (v.duration) fill.style.width = (v.currentTime / v.duration * 100) + '%';
+        while (lines.length && v.currentTime >= lines[0][0]) G.sub(lines.shift()[1], 1800);
+      });
+      v.addEventListener('ended', async () => {
+        if (S2.done) return; S2.done = true; clearInterval(step); btn.classList.add('hidden');
+        if (!S2.stopped) G.award('stairs');
+        G.go('living', { fadeMs: 700 });
+      });
+      this.cleanup = () => {
+        document.body.classList.remove('in-video');
+        clearInterval(step); v.pause();
+        window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+        window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
+      };
+    },
+    unmount() { this.cleanup && this.cleanup(); }
+  };
+
+  /* ================= 二樓：前屋主留下的東西 ================= */
+  const F2 = F1;
+
+  S.living = G.photo(Object.assign({}, F2, {
+    id: 'living', img: 'living', ar: 1400 / 873, title: '二樓・客廳',
+    async onEnter(first) {
+      if (!first) return;
+      await say(['二樓……才是真正住人的地方。', '沙發、茶几、擺設，前屋主的東西全都還在原來的位置。', '簡直像是……人突然消失了一樣。']);
+      G.objective('看看二樓，找一間能睡覺的房間');
     },
     hotspots: [
       { id: 'painting', label: '老畫', r: [11, 38, 14, 12], lines: ['一幅褪色的風景畫。', '畫框底下有一圈深色的水漬……', '像是從畫裡面滲出來的。'] },
@@ -132,14 +306,14 @@
       { id: 'books', label: '書櫃', r: [0, 38, 8, 36], lines: ['書櫃裡塞滿了舊書和相簿。', '每一本相簿的封面……都被撕掉了。'] },
     ],
     nav: [
-      { dir: 'left', to: 'shelf', label: '展示櫃' },
+      { dir: 'left', to: 'corridor', label: '樓梯間' },
       { dir: 'right', to: 'dining', label: '餐廳' },
       { dir: 'up', to: 'hall', label: '走廊' },
     ]
   }));
 
-  S.dining = G.photo(Object.assign({}, F1, {
-    id: 'dining', img: 'dining', title: '一樓・餐廳',
+  S.dining = G.photo(Object.assign({}, F2, {
+    id: 'dining', img: 'dining', title: '二樓・餐廳',
     hotspots: [
       { id: 'portrait', label: '老照片', r: [2, 19, 14, 21], lines: ['牆上掛著一張全家福，相紙已經泛黃了。', '照片裡的人……', '眼睛好像一直跟著我移動。'] },
       { id: 'table', label: '圓桌', r: [46, 58, 42, 22], lines: ['紅木圓桌上的轉盤……', '我走進來的時候，它好像自己轉了半圈。'], sfx: () => G.sfx.creak(0.3, 1) },
@@ -158,8 +332,8 @@
     ]
   }));
 
-  S.altar = G.photo(Object.assign({}, F1, {
-    id: 'altar', img: 'altar', title: '一樓・神明廳',
+  S.altar = G.photo(Object.assign({}, F2, {
+    id: 'altar', img: 'altar', title: '二樓・神明廳',
     onEnter: async (first) => { if (first) { G.sfx.whisper(0.2); await say(['神明廳。', '紅色的神明燈把整面牆照得像血一樣。']); } },
     hotspots: [
       { id: 'lamps', label: '神明燈', r: [56, 39, 23, 16], lines: ['神明燈還亮著。', '（房子空了這麼久……電費到底是誰在繳？）'] },
@@ -172,62 +346,8 @@
     nav: [{ dir: 'down', to: 'dining', label: '回餐廳' }]
   }));
 
-  S.shelf = G.photo(Object.assign({}, F1, {
-    id: 'shelf', img: 'shelf', title: '一樓・展示櫃',
-    hotspots: [
-      { id: 'globes', label: '雪花球', r: [10, 39, 40, 13], lines: ['一整排雪花球。', '裡面的小人……全都背對著我。'] },
-      { id: 'box', label: '私房錢盒', r: [29, 54, 10, 15], lines: ['寫著「私房錢」的木盒子。', '搖一搖，裡面沙沙作響……', '（還是別打開好了。）'] },
-      { id: 'hats', label: '生日帽', r: [19, 17, 27, 15], lines: ['兩頂生日帽。', '上一次在這間房子裡過生日的人，現在在哪裡呢？'] },
-      { id: 'plane', label: '玩具飛機', r: [52, 3, 20, 10], lines: ['櫃子頂端擺著一架紅色的玩具飛機。', '機頭朝著窗外，像是想飛走。'] },
-      { id: 'capy', label: '水豚擺飾', r: [55, 65, 9, 13], lines: ['咬著西瓜的水豚擺飾。', '整間房子裡，只有牠看起來心情很好。'] },
-      { id: 'art', label: '畫', r: [80, 14, 20, 32], lines: ['一幅夕陽的畫。', '顏色黑黑紅紅的，越看越不舒服。'] },
-    ],
-    nav: [
-      { dir: 'left', to: 'cabinet', label: '置物櫃' },
-      { dir: 'down', to: 'living', label: '回客廳' },
-    ]
-  }));
-
-  S.cabinet = G.photo(Object.assign({}, F1, {
-    id: 'cabinet', img: 'cabinet', title: '一樓・置物櫃',
-    hotspots: [
-      { id: 'capsules', label: '最下層', r: [26, 77, 17, 22], go: 'capsules' },
-      { id: 'louver', label: '百葉櫃', r: [5, 20, 20, 74], lines: ['百葉門的縫隙裡，好像有什麼東西在往外看。', '……拉開。', '只有一堆舊衣服。'] },
-      { id: 'plush', label: '黃色布偶', r: [62, 84, 27, 16], lines: ['一隻黃色的大布偶，歪著頭看我。', '剛剛……它的頭是往這邊歪的嗎？'] },
-      { id: 'fan', label: '電風扇', r: [85, 61, 15, 34], lines: ['又一台電風扇。', '這家人好像很怕熱……還是很怕安靜？'] },
-      { id: 'pumpkin', label: '南瓜燈', r: [87, 0, 13, 8], lines: ['萬聖節的南瓜燈，嘴巴咧得好開。'] },
-      { id: 'drawers', label: '收納盒', r: [77, 12, 22, 18], lines: ['抽屜裡塞滿了髮夾、橡皮筋……', '還有一撮綁好的頭髮。'] },
-    ],
-    nav: [{ dir: 'down', to: 'shelf', label: '回展示櫃' }]
-  }));
-
-  S.capsules = G.photo(Object.assign({}, F1, {
-    id: 'capsules', img: 'capsules', title: '一樓・置物櫃（最下層）',
-    enter: ['櫃子最下層，塞滿了扭蛋的空殼。'],
-    decorate(wrap) {
-      if (F().marbleTaken) return;
-      const m = G.el('div', 'marble');
-      Object.assign(m.style, { left: '45%', top: '73.3%', width: '3.9%', height: '3.9%' });
-      m.title = '';
-      m.addEventListener('click', async (e) => {
-        e.stopPropagation(); if (G.locked()) return;
-        F().marbleTaken = true; m.remove();
-        await say(['咦？扭蛋殼堆裡，混著一顆玻璃彈珠。']);
-        G.addItem('marble');
-        await say(['冰冰涼涼的。', '我順手把它放進了口袋。']);
-      });
-      wrap.appendChild(m);
-    },
-    hotspots: [
-      { id: 'black', label: '黑色扭蛋', r: [57, 46, 8, 10], lines: ['只有這顆扭蛋是全黑的。', '拿起來搖一搖……裡面有東西在動。', '……我把它放回去了。'] },
-      { id: 'box', label: '積木盒', r: [62, 28, 38, 32], lines: ['黃色的積木收納盒，裡面空空的。'] },
-      { id: 'pile', label: '扭蛋殼', r: [10, 20, 30, 40], lines: ['好多扭蛋殼……少說也有上百個。', '到底是誰轉了這麼多？'] },
-    ],
-    nav: [{ dir: 'down', to: 'cabinet', label: '返回' }]
-  }));
-
-  S.hall = G.photo(Object.assign({}, F1, {
-    id: 'hall', img: 'hall', title: '一樓・走廊',
+  S.hall = G.photo(Object.assign({}, F2, {
+    id: 'hall', img: 'hall', title: '二樓・走廊',
     hotspots: [
       { id: 'shelves', label: '雜物架', r: [0, 5, 17, 95], lines: ['架子上塞滿了塑膠袋、舊報紙，還有看不出是什麼的東西。', '一股霉味。'] },
       { id: 'wok', label: '炒鍋', r: [61, 32, 9, 17], lines: ['門後掛著一個大炒鍋。'] },
@@ -235,17 +355,16 @@
     ],
     nav: [
       { dir: 'up', to: 'kitchen', label: '廚房' },
-      { dir: 'right', to: 'corridor', label: '樓梯間' },
       { dir: 'down', to: 'living', label: '回客廳' },
     ]
   }));
 
-  S.kitchen = G.photo(Object.assign({}, F1, {
-    id: 'kitchen', img: 'kitchen', title: '一樓・廚房',
+  S.kitchen = G.photo(Object.assign({}, F2, {
+    id: 'kitchen', img: 'kitchen', title: '二樓・廚房',
     hotspots: [
       { id: 'stove', label: '瓦斯爐', r: [13, 53, 17, 9], lines: ['爐子上的鍋子裡，還有半鍋凝固的油。'] },
       { id: 'bulb', label: '燈泡', r: [36, 2, 7, 11], fn: async () => { G.sfx.buzz(1); await say(['燈泡閃了一下。', '……又閃了一下。']); } },
-      { id: 'window', label: '小窗', r: [14, 29, 20, 18], lines: ['抽油煙機旁邊的小窗，玻璃上有一個手印。', '……是從外面印上去的。'] },
+      { id: 'window', label: '小窗', r: [14, 29, 20, 18], lines: ['抽油煙機旁邊的小窗，玻璃上有一個手印。', '……是從外面印上去的。這裡是二樓。'] },
       { id: 'pan', label: '平底鍋', r: [75, 3, 20, 46], lines: ['掛在門上的平底鍋。', '鍋底映出我扭曲的臉。'] },
       { id: 'back', label: '後陽台', r: [49, 18, 21, 66], go: 'balcony' },
     ],
@@ -255,8 +374,8 @@
     ]
   }));
 
-  S.balcony = G.photo(Object.assign({}, F1, {
-    id: 'balcony', img: 'balcony', title: '一樓・後陽台',
+  S.balcony = G.photo(Object.assign({}, F2, {
+    id: 'balcony', img: 'balcony', title: '二樓・後陽台',
     hotspots: [
       { id: 'cookers', label: '電鍋', r: [0, 50, 30, 25], lines: ['一排電鍋。', '其中一個的保溫燈……還亮著。', '掀開鍋蓋——是空的。'] },
       { id: 'broom', label: '畚箕', r: [52, 60, 15, 36], lines: ['掃把和畚箕。', '畚箕裡有一小撮黑色的頭髮。'] },
@@ -269,8 +388,8 @@
     ]
   }));
 
-  S.laundry = G.photo(Object.assign({}, F1, {
-    id: 'laundry', img: 'laundry', title: '一樓・曬衣區',
+  S.laundry = G.photo(Object.assign({}, F2, {
+    id: 'laundry', img: 'laundry', title: '二樓・曬衣區',
     hotspots: [
       { id: 'clothes', label: '衣服', r: [55, 38, 45, 58], lines: ['曬衣架上的衣服還沒收。', '伸手摸了一下……是濕的。', '（最近明明都沒有下雨。）'] },
       { id: 'sleeve', label: '掛著的衣服', r: [0, 51, 16, 36], lines: ['掛在牆邊的衣服，袖子垂下來……', '像是一隻手。'] },
@@ -279,33 +398,34 @@
     nav: [{ dir: 'down', to: 'balcony', label: '回後陽台' }]
   }));
 
-  S.corridor = G.photo(Object.assign({}, F1, {
-    id: 'corridor', img: 'corridor', title: '一樓・樓梯間',
-    enter: ['左手邊就是往上的樓梯。'],
+  S.corridor = G.photo(Object.assign({}, F2, {
+    id: 'corridor', img: 'corridor', title: '二樓・樓梯間',
     hotspots: [
-      { id: 'stairs', label: '樓梯（上二樓）', r: [0, 44, 11, 56], go: 'stairs' },
+      { id: 'stairs', label: '樓梯口', r: [0, 44, 11, 56], go: 'stairs' },
       { id: 'bath', label: '浴室', r: [42, 10, 32, 80], go: 'bath' },
       {
-        id: 'trash', label: '垃圾桶', r: [16, 78, 16, 21], fn: async ({ first }) => {
+        id: 'trash', label: '垃圾桶', r: [16, 78, 16, 21], fn: async () => {
           if (F().note) return say(['垃圾桶裡已經沒有其他東西了。']);
           await say(['垃圾桶裡只有一張揉爛的紙。', '攤開來看——']);
           G.sfx.sting(0.4);
           await say(['「不要睡在二樓」', '……什麼意思？']);
           F().note = true; G.addItem('note');
+          G.award('note');
         }
       },
       { id: 'basket', label: '洗衣籃', r: [74, 76, 17, 24], lines: ['空的洗衣籃。'] },
       { id: 'towels', label: '層架', r: [82, 0, 18, 20], lines: ['門框上方的層架堆著舊毛巾。'] },
     ],
     nav: [
-      { dir: 'left', to: 'stairs', label: '上二樓' },
+      { dir: 'left', to: 'stairs', label: '樓梯口' },
       { dir: 'up', to: 'bath', label: '浴室' },
-      { dir: 'down', to: 'hall', label: '回走廊' },
+      { dir: 'right', to: 'room2f', label: '最裡面的房間' },
+      { dir: 'down', to: 'living', label: '回客廳' },
     ]
   }));
 
-  S.bath = G.photo(Object.assign({}, F1, {
-    id: 'bath', img: 'bath', title: '一樓・浴室',
+  S.bath = G.photo(Object.assign({}, F2, {
+    id: 'bath', img: 'bath', title: '二樓・浴室',
     hotspots: [
       { id: 'drain', label: '排水孔', r: [54, 70, 10, 8], fn: async () => { G.sfx.gurgle(); await say(['排水孔傳來「咕嚕……咕嚕……」的聲音。', '像是有人在下面吞口水。']); } },
       { id: 'drain2', label: '排水孔', r: [55, 88, 11, 8], fn: async () => { G.sfx.gurgle(); await say(['另一個排水孔裡，卡著一團長頭髮。']); } },
@@ -316,31 +436,13 @@
     nav: [{ dir: 'down', to: 'corridor', label: '返回' }]
   }));
 
-  S.stairs = G.photo(Object.assign({}, F1, {
-    id: 'stairs', img: 'stairs', title: '二樓・樓梯口',
-    async onEnter(first) {
-      if (!first) return;
-      G.objective('');
-      await say(['爬上樓梯，回頭往下看了一眼——',
-        ['', '樓梯底下，有兩顆頭正探出來看著我。', () => G.sfx.sting(0.6)],
-        '……', '……仔細一看，只是櫃子上的玩偶。', '（嚇死人了……）']);
-    },
-    hotspots: [
-      { id: 'dolls', label: '玩偶', r: [64, 63, 15, 11], lines: ['樓梯下櫃子上的玩偶。', '剛剛……它們有在那裡嗎？'] },
-      { id: 'rail', label: '扶手', r: [15, 43, 50, 32], lines: ['不鏽鋼扶手冰冰涼涼的。'] },
-    ],
-    nav: [
-      { dir: 'up', to: 'room2f', label: '進入二樓' },
-      { dir: 'down', to: 'corridor', label: '下樓' },
-    ]
-  }));
-
   S.room2f = G.photo({
-    id: 'room2f', img: 'room2f', ar: 1400 / 1064, title: '二樓', grade: G.GRADE.dusk, tint: G.TINT.dusk,
+    id: 'room2f', img: 'room2f', ar: 1400 / 1064, title: '二樓・最裡面的房間', grade: G.GRADE.dusk, tint: G.TINT.dusk, ambient: true,
     async onEnter(first) {
       if (!first) return;
-      await say(['二樓……什麼都沒有。', '乾乾淨淨的，跟一樓完全不一樣。', '好像前屋主……從來沒有上來過。', '今晚要住在這裡的話，至少得買張床。']);
-      G.objective('去家具行買家具');
+      await say(['這間……應該是臥室。', '前屋主的東西堆滿了整層樓，這間卻空得乾乾淨淨。', '連一張床都沒有。', '今晚要住在這裡的話，至少得買張床。']);
+      F().sawRoom = true;
+      G.objective('走回樓梯口下樓，去家具行買家具');
     },
     hotspots: [
       { id: 'wreath', label: '花圈', r: [48, 33, 9, 11], lines: ['空蕩蕩的牆上，只掛著一個小花圈。', '（……誰會在空房間裡掛花圈？）'] },
@@ -348,11 +450,27 @@
       { id: 'wall', label: '牆壁', r: [58, 46, 36, 44], lines: ['這面牆有一塊顏色比較新，像是重新粉刷過。', '底下……蓋住了什麼？'] },
       { id: 'ceiling', label: '天花板', r: [34, 0, 50, 28], lines: ['天花板很高，白白的，什麼都沒有。', '……今天晚上，我就要睡在這底下。'] },
     ],
-    nav: () => [
-      { dir: 'down', to: 'stairs', label: '下樓' },
-      { dir: 'action', label: '騎車去家具行', fn: () => G.go('ride2', { fadeMs: 800 }), show: () => G.state.visited.room2f > 0 },
-    ]
+    nav: [{ dir: 'down', to: 'corridor', label: '返回' }]
   });
+
+  S.stairs = G.photo(Object.assign({}, F2, {
+    id: 'stairs', img: 'stairs', title: '二樓・樓梯口',
+    async onEnter(first) {
+      if (!first) return;
+      await say(['從樓梯口往下看了一眼——',
+        ['', '樓梯底下，有兩顆頭正探出來看著我。', () => G.sfx.sting(0.6)],
+        '……', '……仔細一看，只是櫃子上的玩偶。', '（嚇死人了……）']);
+    },
+    hotspots: [
+      { id: 'dolls', label: '玩偶', r: [64, 63, 15, 11], lines: ['樓梯下櫃子上的玩偶。', '剛剛……它們有在那裡嗎？'] },
+      { id: 'rail', label: '扶手', r: [15, 43, 50, 32], lines: ['不鏽鋼扶手冰冰涼涼的。'] },
+    ],
+    nav: () => [
+      { dir: 'up', to: 'corridor', label: '回二樓' },
+      { dir: 'down', to: 'foyer', label: '下樓' },
+      { dir: 'action', label: '下樓，騎車去家具行', fn: () => G.go('ride2', { fadeMs: 800 }), show: () => !!F().sawRoom },
+    ]
+  }));
 
   S.ride2 = {
     mount(st) {
@@ -367,10 +485,18 @@
 
   /* ================= 晚上，臥室 ================= */
   const NIGHT = { grade: G.GRADE.night, tint: G.TINT.night, tintBlend: 'multiply' };
+  const hasDresser = () => (F().furniture || []).includes('dresser');
   const readyToSleep = () => F().water && F().fanOn;
   const bedObjective = () => {
-    if (readyToSleep()) G.objective('上床睡覺');
-    else G.objective('睡前要' + [F().water ? null : '倒一杯水放床頭', F().fanOn ? null : '打開電風扇'].filter(Boolean).join('、'));
+    if (readyToSleep()) G.objective('關掉床頭的檯燈，上床睡覺');
+    else G.objective('睡前要：' + [F().water ? null : '倒一杯水', F().fanOn ? null : '打開電風扇'].filter(Boolean).join('、'));
+  };
+  const fanSpot = async () => {
+    if (F().fanOn) return say(['電風扇左右擺著頭。', '咯噠……咯噠……']);
+    F().fanOn = true;
+    AudioSys.fan.start(0.28, 1.5);
+    await say(['打開家具行老闆送的電風扇。', '它左右擺頭的時候，會發出「咯噠、咯噠」的聲音。', '……有點吵，不過聽久了應該就習慣了。']);
+    bedObjective();
   };
 
   S.bed1 = G.photo(Object.assign({}, NIGHT, {
@@ -378,7 +504,9 @@
     async onEnter(first) {
       if (!AudioSys.rain.on) AudioSys.rain.start(0.22, 3);
       if (first) {
-        await say(['衣櫃、五斗櫃、床……都擺好了。', '二樓終於有點像人住的地方。', '窗外……開始下雨了。']);
+        await say(hasDresser()
+          ? ['床、衣櫃、床頭櫃……都擺好了。', '二樓終於有一間像樣的臥室。', '窗外……開始下雨了。']
+          : ['床和衣櫃都擺好了。', '（床頭櫃沒買……算了，東西先放地上吧。）', '窗外……開始下雨了。']);
       }
       bedObjective();
     },
@@ -388,22 +516,15 @@
       { id: 'chair', label: '椅子', r: [2, 50, 28, 26], lines: ['椅子上堆著剛搬來的衣服和棉被。'] },
       { id: 'shelf', label: '摺好的衣服', r: [78, 49, 22, 12], lines: ['摺好的衣服。上面那件……我不記得我有這件。'] },
       {
-        id: 'bed', label: '床', r: [8, 74, 92, 26], fn: async () => {
-          if (!readyToSleep()) return say(['（睡前……先倒杯水、把電風扇打開吧。）']);
-          const lines = ['躺上床，關燈。', '雨聲。電風扇的咯噠聲。'];
-          if (G.hasItem('note')) lines.push('（「不要睡在二樓」……）', '……想太多了。');
-          lines.push('眼皮……越來越重——');
-          await say(lines);
-          AudioSys.fan.stop(1.5);
-          G.save('bedroom');
-          await G.fadeOut(1800);
-          G.go('sleep', { noFade: true });
-        }
+        id: 'bed', label: '床', r: [8, 74, 92, 26], fn: () => say(readyToSleep()
+          ? ['（關掉床頭的檯燈，就可以睡了。）']
+          : ['（睡前……先倒杯水、把電風扇打開吧。）'])
       },
     ],
-    nav: [
+    nav: () => [
       { dir: 'left', to: 'bed2', label: '衣櫃' },
-      { dir: 'right', to: 'bed3', label: '五斗櫃' },
+      { dir: 'right', to: hasDresser() ? 'sideD' : 'sideF', label: hasDresser() ? '床頭櫃' : '床邊' },
+      { dir: 'up', to: 'lamp', label: '床頭的檯燈' },
     ]
   }));
 
@@ -417,31 +538,80 @@
     nav: [{ dir: 'right', to: 'bed1', label: '床' }]
   }));
 
-  S.bed3 = G.photo(Object.assign({}, NIGHT, {
-    id: 'bed3', img: 'bed3', title: '二樓・臥室（五斗櫃）',
-    hotspots: [
+  // 有買床頭櫃：水杯放在櫃子上
+  S.sideD = G.photo(Object.assign({}, NIGHT, {
+    id: 'sideD', img: () => F().water ? 'bedwater' : 'bed3', title: '二樓・臥室（床頭櫃）',
+    hotspots: () => F().water ? [
+      { id: 'cup', label: '水杯', r: [26, 30, 12, 12], lines: ['床頭櫃上的水杯。', '水面平平靜靜的。'] },
+      { id: 'fan', label: '電風扇', r: [12, 52, 42, 46], fn: fanSpot },
+      { id: 'jewel', label: '首飾盒', r: [46, 0, 30, 36], lines: ['首飾盒的小鏡子裡……好像有人在看我。'] },
+    ] : [
       {
-        id: 'water', label: '水杯', r: [10, 30, 40, 20], fn: async () => {
-          if (F().water) return say(['床頭的水杯。', '水面平平靜靜的。']);
+        id: 'water', label: '床頭櫃（放水杯）', r: [10, 30, 40, 20], fn: async () => {
           F().water = true;
           G.sfx.drip(0.4); await G.wait(250); G.sfx.drip(0.3);
-          await say(['倒了一杯水，放在床頭。', '半夜口渴的話，就不用下樓了。']);
-          bedObjective();
+          await say(['倒了一杯水，放在床頭櫃上。', '半夜口渴的話，伸手就拿得到。']);
+          await G.swap(); bedObjective();
         }
       },
-      {
-        id: 'fan', label: '電風扇', r: [0, 69, 42, 31], fn: async () => {
-          if (F().fanOn) return say(['電風扇左右擺著頭。', '咯噠……咯噠……']);
-          F().fanOn = true;
-          AudioSys.fan.start(0.28, 1.5);
-          await say(['打開家具行老闆送的電風扇。', '它左右擺頭的時候，會發出「咯噠、咯噠」的聲音。', '……有點吵，不過聽久了應該就習慣了。']);
-          bedObjective();
-        }
-      },
+      { id: 'fan', label: '電風扇', r: [0, 69, 42, 31], fn: fanSpot },
       { id: 'drawer', label: '抽屜', r: [28, 50, 40, 44], lines: ['抽屜拉開一半就卡住了。', '裡面……好像有人塞了一張紙？', '用力拉——拉不開。'] },
       { id: 'side', label: '衣櫃側面', r: [70, 0, 30, 90], lines: ['衣櫃側面有幾道細細的刮痕。', '像是……指甲抓出來的。'] },
     ],
     nav: [{ dir: 'left', to: 'bed1', label: '床' }]
+  }));
+
+  // 沒買床頭櫃：水杯只能放在地上
+  S.sideF = G.photo(Object.assign({}, NIGHT, {
+    id: 'sideF', img: () => F().water ? 'floorcup2' : 'floorcup', ar: () => F().water ? 1400 / 1325 : 1400 / 1297, title: '二樓・臥室（床邊）',
+    hotspots: () => F().water ? [
+      { id: 'cup', label: '地上的水杯', r: [38, 76, 17, 22], lines: ['放在地上的馬克杯。', '水面……好像微微晃了一下。'] },
+      { id: 'fan', label: '電風扇', r: [0, 64, 38, 36], fn: fanSpot },
+      { id: 'wardrobe', label: '衣櫃', r: [50, 0, 50, 88], lines: ['衣櫃跟牆壁之間有一條很窄的縫。', '黑漆漆的……什麼都看不到。'] },
+    ] : [
+      {
+        id: 'floor', label: '地板（放水杯）', r: [37, 70, 24, 30], fn: async () => {
+          F().water = true;
+          await say(['沒有床頭櫃……', '只好把自己帶來的馬克杯倒滿水，放在地上。', '就放在電風扇旁邊吧。']);
+          G.sfx.drip(0.4); await G.swap();
+          await say(['（……阿嬤以前好像說過，晚上不要把水放在地上。）', '（為什麼呢？）']);
+          bedObjective();
+        }
+      },
+      { id: 'fan', label: '電風扇', r: [0, 66, 37, 34], fn: fanSpot },
+      { id: 'cabinet', label: '矮櫃', r: [0, 52, 25, 16], lines: ['原本就留在房間裡的矮櫃，上面堆滿東西，放不下水杯。'] },
+      { id: 'wardrobe', label: '衣櫃', r: [55, 0, 45, 90], lines: ['衣櫃跟牆壁之間有一條很窄的縫。', '黑漆漆的……什麼都看不到。'] },
+    ],
+    nav: [{ dir: 'left', to: 'bed1', label: '床' }]
+  }));
+
+  // 床頭的檯燈：關燈就睡覺
+  S.lamp = G.photo(Object.assign({}, NIGHT, {
+    id: 'lamp', img: () => F().lampOff ? 'lampoff' : 'lampon', title: '二樓・臥室（床頭）',
+    grade: () => F().lampOff ? G.GRADE.night : 'brightness(.85) contrast(1.08) saturate(.8)',
+    tint: () => F().lampOff ? G.TINT.night : 'linear-gradient(rgba(60,40,20,.15), rgba(10,8,20,.35))',
+    hotspots: () => F().lampOff ? [] : [
+      {
+        id: 'lamp', label: '檯燈', r: [52, 12, 34, 64], fn: async () => {
+          if (!readyToSleep()) return say(['（先倒好水、打開電風扇，再關燈睡覺吧。）']);
+          G.sfx.click();
+          F().lampOff = true;
+          await G.swap();
+          const lines = ['啪。', '房間暗了下來。', '雨聲。電風扇的咯噠聲。'];
+          if (!hasDresser()) lines.push('（地上的水杯……應該不會踢到吧。）');
+          if (G.hasItem('note')) lines.push('（「不要睡在二樓」……）', '……想太多了。');
+          lines.push('眼皮……越來越重——');
+          await say(lines);
+          AudioSys.fan.stop(1.5);
+          G.save('bedroom');
+          await G.fadeOut(1800);
+          G.go('sleep', { noFade: true });
+        }
+      },
+      { id: 'pillow', label: '枕頭', r: [80, 74, 20, 26], lines: ['枕頭套是新的，聞起來卻有一股淡淡的香灰味。'] },
+      { id: 'plug', label: '延長線', r: [20, 56, 24, 14], lines: ['延長線上的指示燈，一閃一閃的。'] },
+    ],
+    nav: [{ dir: 'down', to: 'bed1', label: '回床邊' }]
   }));
 
   /* ================= 夢境 ================= */
@@ -449,8 +619,13 @@
     mount: black,
     async after() {
       await G.fadeIn(10);
-      await cine([['那一晚，我做了一個好長、好長的夢。', 3600]]);
-      G.go('dream', { fadeMs: 600, fadeInMs: 200 });
+      if (hasDresser()) {
+        await cine([['那一晚，我做了一個好長、好長的夢。', 3600]]);
+        G.go('dream', { fadeMs: 600, fadeInMs: 200 });
+      } else {
+        await cine([['那一晚……', 2200], ['我是渴醒的。', 2600]]);
+        G.go('thirst', { fadeMs: 400, noFadeIn: true });
+      }
     }
   };
 
@@ -467,8 +642,8 @@
       G.hud(false);
       AudioSys.rain.stop(0.1);
       const scr = G.el('div', 'screen photo-scene', `
-        <div class="bgblur" style="background-image:url(assets/bed1.jpg)"></div>
-        <div class="photo-wrap" style="--ar:1;--grade:${G.GRADE.morning}"><img src="assets/bed1.jpg" alt=""><div class="sunlight"></div></div>
+        <div class="bgblur" style="background-image:url(assets/morning.jpg)"></div>
+        <div class="photo-wrap" style="--ar:1;--grade:brightness(1.02) contrast(1.02) saturate(.85)"><img src="assets/morning.jpg" alt=""></div>
         <div class="phone"><div class="scr"><div class="date">10月18日 星期日</div><div class="time">10:30</div>
           <div class="noti"><b>訊息・仲介 小陳</b>昨晚……睡得還好嗎？</div></div></div>`);
       st.appendChild(scr);
@@ -480,9 +655,10 @@
       await say(['手機的螢幕亮著。', '……已經 10:30 了？', '（我睡了這麼久……）']);
       this.phone.classList.remove('show');
       await G.wait(600);
-      await say(['窗外的雨停了。陽光照進房間，一切看起來都很正常。', '……只是一場夢而已。', '我轉頭看向床頭——',
+      await say(['窗外的雨停了。天陰陰的，一切看起來都很正常。', '……只是一場夢而已。', '我轉頭看向床頭——',
         ['', '水杯裡的水，一滴都不剩。', () => G.sfx.sting(0.6)],
         '杯子正上方的天花板，有一圈濕濕的、暗褐色的水漬。']);
+      await G.award('ending1', { title: '觸發 第一章結局……', always: true, ms: 4000 });
       G.go('end', { fadeMs: 1600 });
     }
   };
@@ -497,7 +673,7 @@
           <div class="tt">惡夢開端</div>
           <div class="fin">〔 完 〕</div>
           <div class="stats">${[n ? `調查了 ${n} 個地方` : '', F().marbleTaken ? '找到了彈珠' : '', F().note ? '讀了紙條' : ''].filter(Boolean).join('・')}<br>第二章　敬請期待</div>
-          <div class="menu"><button class="btn again">再玩一次</button><button class="btn small dream">重看惡夢</button></div>
+          <div class="menu"><button class="btn again">回到主頁面</button><button class="btn small dream">重看惡夢</button></div>
         </div>`);
       st.appendChild(scr);
       scr.querySelector('.again').addEventListener('click', () => { G.clearSave(); G.state = G.newState(); G.renderInv(); G.go('title', { fadeMs: 1000 }); });

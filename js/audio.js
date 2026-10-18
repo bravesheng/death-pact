@@ -416,5 +416,47 @@
     S.impact(1.2);
   });
 
+  // 喝水的咕嘟聲
+  S.gulp = guard((vol = 0.8) => {
+    const t = now();
+    [0, 0.32].forEach((dt, i) => {
+      const g = gain(0, master); const o = osc('sine', 220, g, t + dt, 0.25);
+      o.frequency.setValueAtTime(260 - i * 30, t + dt); o.frequency.exponentialRampToValueAtTime(90, t + dt + 0.16);
+      env(g, t + dt, 0.01, vol, 0.18);
+      const g2 = gain(0, master); const b = filt('bandpass', 700, 4, g2); noise(noiseB, b, t + dt, 0.15); env(g2, t + dt, 0.005, vol * 0.8, 0.1);
+    });
+  });
+  // 嗆到的咳嗽
+  S.cough = guard((vol = 0.7) => {
+    const t0 = now();
+    [0, 0.34, 0.6].forEach((dt, i) => {
+      const t = t0 + dt, g = gain(0, master); const b = filt('bandpass', 900 - i * 120, 1.4, g);
+      noise(noiseW, b, t, 0.3); env(g, t, 0.01, vol * (1 - i * 0.2), 0.22);
+      const g2 = gain(0, master); osc('sawtooth', 130 - i * 10, filt('lowpass', 500, 1, g2), t, 0.2); env(g2, t, 0.01, vol * 0.3, 0.15);
+    });
+  });
+  // 驚醒時倒抽一口氣
+  S.gasp = guard((vol = 0.7) => {
+    const t = now(), g = gain(0, master); const b = filt('bandpass', 1400, 2.5, g);
+    noise(noiseW, b, t, 0.7);
+    b.frequency.setValueAtTime(900, t); b.frequency.exponentialRampToValueAtTime(2200, t + 0.45);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.08); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+  });
+  // 黑影低頭吸水的聲音
+  A.slurp = makeLoop((out, o, self) => {
+    const t = setInterval(() => {
+      if (!self.out) return;
+      const n = 1 + (Math.random() * 3 | 0);
+      for (let i = 0; i < n; i++) {
+        const tt = now() + Math.random() * 0.25, g = gain(0, pan(Math.random() * 1.6 - .8, out));
+        const b = filt('bandpass', 500 + Math.random() * 1200, 6, g);
+        noise(noiseW, b, tt, 0.12);
+        b.frequency.setValueAtTime(400 + Math.random() * 300, tt); b.frequency.exponentialRampToValueAtTime(1500 + Math.random() * 900, tt + 0.1);
+        env(g, tt, 0.005, 0.5 + Math.random() * 0.5, 0.09);
+      }
+    }, 260);
+    return { srcs: [], timers: [t] };
+  });
+
   window.AudioSys = A;
 })();
